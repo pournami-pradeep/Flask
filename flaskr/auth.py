@@ -1,4 +1,4 @@
-from flask import Blueprint, flash, redirect, render_template, request, url_for
+from flask import Blueprint, flash, redirect, render_template, request, session, url_for
 
 from flaskr.db import get_db
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -32,3 +32,26 @@ def register():
         flash(error)
 
     return render_template("auth/register.html")
+
+@bp.route('/login', method=('POST',"GET"))
+def login():
+    if request.method == "POST":
+        username = request.form["username"]
+        password = request.form["password"]
+
+        db = get_db()
+        error = None
+        user = db.execute(
+            'SELECT * FROM user WHERE username = ?'(username,)
+        ).fetchone()
+        if user is None:
+            error = "Invalid username"
+        elif not check_password_hash(user['password'], password):
+            error = "Incorrect Password"
+
+        if error is None:
+            session.clear()
+            session['user_id'] = user['id']
+            return redirect(url_for('index'))
+        flash(error)
+    return render_template('auth/login.html')
